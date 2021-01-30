@@ -2,6 +2,7 @@ package SnakeGame;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -13,14 +14,36 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 	
 	private static final long serialVersionUID = 1L;
 	
-	public static final int WIDTH = 750;
-	public static final int HEIGHT = 750;
+	public static final int WIDTH = 790;
+	public static final int HEIGHT = 790;
+	
+	public static final int WIDTH_INFO_PANEL = WIDTH;
+	public static final int HEIGHT_INFO_PANEL = 40;
+	
+	public static final int FONT_INFO_PANEL_SIZE = 18;
+	
+	public static final int SCORE_XCOORD = WIDTH / 2;
+	public static final int SCORE_YCOORD = HEIGHT - (HEIGHT_INFO_PANEL / 2);
+	
+	public static final int GAME_OVER_XCOORD = WIDTH / 2;
+	public static final int GAME_OVER_YCOORD = HEIGHT / 2;
+	
+    public static final int FONT_GAME_OVER_SIZE = 75;
+    
+	public static final int START_MSG_XCOORD = WIDTH / 2;
+	public static final int START_MSG_YCOORD = HEIGHT / 3;
+	
+    public static final int FONT_START_MSG_SIZE = 17;
 	
 	public static final int LOOP = 40;
+	
+	public static int SCORE_POINT = 10;
 	
 	private Thread thread;
 	
 	private boolean running;
+	
+	private boolean collision;
 	
 	private boolean right;
 	private boolean left;
@@ -30,6 +53,8 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 	private Snake snake;
 	
 	private Food food;
+	
+	private int score;
 	
 	public GamePanel() {
 		setFocusable(true);
@@ -95,16 +120,19 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 	}
 
 	public void start() {
-		running = true;
+		collision = false;
+		left = false;
+		right = false;
+		up = false;
 		down = true;
 		snake = new Snake();
 		food = new Food(snake);
+		score = 0;
 		thread = new Thread(this);
 		thread.start();
 	}
 	
 	public void stop() {
-		running = false;
 		try {
 			thread.join();
 		} catch(Exception e) {
@@ -113,7 +141,7 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 	}
 	
 	public void move() {
-		isBorderCollision();
+		borderCollision();
 		
 		if(up) {
 			Iterator<BodyPart> iterator = snake.getSnakeBody().iterator();
@@ -180,11 +208,11 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 			}
 		}
 		
-		isSnakeCollision();
-		isFoodEaten();
+		snakeCollision();
+		foodEaten();
 	}
 	
-	public boolean isFoodEaten() {
+	public void foodEaten() {
 		Iterator<BodyPart> iterator = snake.getSnakeBody().iterator();
 		BodyPart head = iterator.next();
 		if(head.getxCoord() > (food.getxCoord() - Food.FOOD_SIZE) && head.getxCoord() < (food.getxCoord() + Food.FOOD_SIZE) && 
@@ -192,53 +220,76 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 			food = new Food(snake);
 			BodyPart bodyPart = new BodyPart();
 			snake.addBodyPart(bodyPart);
-			return true;
+			score = score + SCORE_POINT;
 		}
-		
-		return false;
 	}
 	
-	public boolean isSnakeCollision() {
+	public void snakeCollision() {
 		Iterator<BodyPart> iterator = snake.getSnakeBody().iterator();
 		BodyPart head = iterator.next();
 		while(iterator.hasNext()) {
 			BodyPart bodyPart = iterator.next();
 			if(head.getxCoord() == bodyPart.getxCoord() && head.getyCoord() == bodyPart.getyCoord()) {
 				System.out.print("Game Over");
-				stop();
-				return true;
+				running = false;
+				collision = true;
 			}
 		}
-		
-		return false;
 	}
 	
-	public boolean isBorderCollision() {
+	public void borderCollision() {
 		if(snake.getHead().getxCoord() - Snake.SNAKE_SIZE / 2 < 0 || snake.getHead().getxCoord() + Snake.SNAKE_SIZE / 2 >= WIDTH ||
-		   snake.getHead().getyCoord() - Snake.SNAKE_SIZE / 2 < 0 || snake.getHead().getyCoord() + Snake.SNAKE_SIZE / 2 >= HEIGHT) {
+		   snake.getHead().getyCoord() - Snake.SNAKE_SIZE / 2 < 0 || snake.getHead().getyCoord() + Snake.SNAKE_SIZE / 2 >= (HEIGHT - HEIGHT_INFO_PANEL)) {
 			System.out.print("Game Over");
-			stop();
-			return true;
+			running = false;
+			collision = true;
 		}
-		
-		return false;
 	}
 	
 	public void paint(Graphics g) {
-		g.clearRect(0, 0, WIDTH, HEIGHT);
-		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, WIDTH, HEIGHT);
-		
-		if(snake != null) {
-			for(BodyPart bodyPart: snake.getSnakeBody()) {
-				g.setColor(Color.GREEN);
-				g.fillRect(bodyPart.getxCoord(), bodyPart.getyCoord(), Snake.SNAKE_SIZE, Snake.SNAKE_SIZE);
-			}
+		if(!running && !collision) {
+			g.clearRect(0, 0, WIDTH, HEIGHT);
+			g.setColor(Color.BLACK);
+			g.fillRect(0, 0, WIDTH, HEIGHT);
 		}
 		
-		if(food != null) {
+		if(!running) {			
+			g.setColor(Color.WHITE);
+			g.setFont(new Font("Arial", Font.BOLD, FONT_START_MSG_SIZE));
+			String strStartMsg = "Press Enter to Start";
+			g.drawString(strStartMsg, START_MSG_XCOORD - FONT_START_MSG_SIZE * strStartMsg.length() / 4, START_MSG_YCOORD + FONT_START_MSG_SIZE);
+		}
+		
+		if(!running && collision) {
 			g.setColor(Color.RED);
-			g.fillRect(food.getxCoord(), food.getyCoord(), Food.FOOD_SIZE, Food.FOOD_SIZE);
+			g.setFont(new Font("Arial", Font.BOLD, FONT_GAME_OVER_SIZE));
+			String strGameOver = "GAME OVER";
+			g.drawString(strGameOver, GAME_OVER_XCOORD - FONT_GAME_OVER_SIZE * strGameOver.length() / 3, GAME_OVER_YCOORD + FONT_GAME_OVER_SIZE / 6);
+		}
+		
+		if(running) {
+			g.clearRect(0, 0, WIDTH, HEIGHT);
+			g.setColor(Color.BLACK);
+			g.fillRect(0, 0, WIDTH, HEIGHT);
+			
+			if(snake != null) {
+				for(BodyPart bodyPart: snake.getSnakeBody()) {
+					g.setColor(Color.GREEN);
+					g.fillRect(bodyPart.getxCoord(), bodyPart.getyCoord(), Snake.SNAKE_SIZE, Snake.SNAKE_SIZE);
+				}
+			}
+			
+			if(food != null) {
+				g.setColor(Color.RED);
+				g.fillRect(food.getxCoord(), food.getyCoord(), Food.FOOD_SIZE, Food.FOOD_SIZE);
+			}
+			
+			g.setColor(Color.YELLOW);
+			g.fillRect(0, HEIGHT - HEIGHT_INFO_PANEL, WIDTH_INFO_PANEL, HEIGHT_INFO_PANEL);
+			g.setColor(Color.BLACK);
+			g.setFont(new Font("Arial", Font.PLAIN, FONT_INFO_PANEL_SIZE));
+			String strScore = "Score: " + score;
+			g.drawString(strScore, SCORE_XCOORD - FONT_INFO_PANEL_SIZE * strScore.length() / 4, SCORE_YCOORD + FONT_INFO_PANEL_SIZE / 2);
 		}
 	}
 	
@@ -265,6 +316,11 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 			up = false;
 			down = false;
 		}
+		
+		if(!running && key == KeyEvent.VK_ENTER) {
+			running = true;
+			start();
+		}
 	}
 	
 	@Override
@@ -288,5 +344,6 @@ public class GamePanel extends JPanel implements KeyListener, Runnable {
 				e.printStackTrace();
 			}
 		}
+		stop();
 	}
 }

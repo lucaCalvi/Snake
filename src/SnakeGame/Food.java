@@ -14,8 +14,8 @@ public class Food {
 		do {
 			Random rand = new Random();
 			
-			xCoord = rand.nextInt(GamePanel.WIDTH - Food.FOOD_SIZE) + Food.FOOD_SIZE;
-			yCoord = rand.nextInt(GamePanel.HEIGHT - Food.FOOD_SIZE) + Food.FOOD_SIZE;
+			xCoord = rand.nextInt(GamePanel.WIDTH - Food.FOOD_SIZE * 5) + Food.FOOD_SIZE * 5;
+			yCoord = rand.nextInt(GamePanel.HEIGHT - GamePanel.HEIGHT_INFO_PANEL - Food.FOOD_SIZE * 5) + Food.FOOD_SIZE * 5;
 			
 			for(BodyPart bodyPart : snake.getSnakeBody()) {
 				if(bodyPart.getxCoord() > (xCoord - Food.FOOD_SIZE) && bodyPart.getxCoord() < (xCoord + Food.FOOD_SIZE) && 
